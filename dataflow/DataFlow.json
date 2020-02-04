@@ -1,0 +1,42 @@
+{
+    "name": "calculate-traffic-volume",
+    "properties": {
+        "type": "MappingDataFlow",
+        "typeProperties": {
+            "sources": [
+                {
+                    "dataset": {
+                        "referenceName": "Input",
+                        "type": "DatasetReference"
+                    },
+                    "name": "ReadVehiclesPositions"
+                }
+            ],
+            "sinks": [
+                {
+                    "dataset": {
+                        "referenceName": "Output",
+                        "type": "DatasetReference"
+                    },
+                    "name": "WriteTrafficVolumeData"
+                }
+            ],
+            "transformations": [
+                {
+                    "name": "AreaFilter"
+                },
+                {
+                    "name": "ChangeColumNames",
+                    "description": "Creates an explicit mapping for each drifted column"
+                },
+                {
+                    "name": "CountObjectsInRectangles"
+                },
+                {
+                    "name": "RoundLngAndLat"
+                }
+            ],
+            "script": "parameters{\n\twestBound as float (116.1f),\n\teastBound as float (116.7f),\n\tnorthBound as float (40.2f),\n\tsouthBound as float (39.7f),\n\tdiscretization as integer (2)\n}\nsource(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\twildcardPaths:['*.txt'],\n\tpartitionBy('roundRobin', 10)) ~> ReadVehiclesPositions\nChangeColumNames filter(lng >= toFloat($westBound) && \nlng <= toFloat($eastBound) && \nlat >= toFloat($southBound) && \nlat <= toFloat($northBound)) ~> AreaFilter\nReadVehiclesPositions derive(vehicleId = toInteger((byName('_col0_'))),\n\t\ttimestamp = toTimestamp(byName('_col1_')),\n\t\tlng = toFloat(byName('_col2_')),\n\t\tlat = toFloat(byName('_col3_'))) ~> ChangeColumNames\nRoundLngAndLat aggregate(groupBy(lng,\n\t\tlat),\n\tcount = count()) ~> CountObjectsInRectangles\nAreaFilter derive(lng = round(lng, $discretization),\n\t\tlat = round(lat, $discretization)) ~> RoundLngAndLat\nCountObjectsInRectangles sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet') ~> WriteTrafficVolumeData"
+        }
+    }
+}
