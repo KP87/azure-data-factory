@@ -1,0 +1,59 @@
+{
+    "name": "HeatmapPipeline",
+    "properties": {
+        "activities": [
+            {
+                "name": "calculate-traffic-volume",
+                "type": "ExecuteDataFlow",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataflow": {
+                        "referenceName": "calculate-traffic-volume",
+                        "type": "DataFlowReference"
+                    },
+                    "compute": {
+                        "coreCount": 8,
+                        "computeType": "General"
+                    }
+                }
+            },
+            {
+                "name": "generate-heatmap-data",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "calculate-traffic-volume",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/adftest/testNotebook"
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricks_LinkedService",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "annotations": []
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
